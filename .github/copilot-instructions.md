@@ -135,8 +135,29 @@ Al desarrollar el contenido de una nueva semana, seguir **siempre** este orden:
 
 - Archivos markdown con explicaciones conceptuales
 - Ejemplos SQL completos y ejecutables
-- Diagramas ER o de flujo cuando sea necesario
+- Referencia a diagrama SVG al inicio (después de objetivos)
 - Referencias a documentación oficial (PostgreSQL docs, SQLite docs)
+
+#### 📏 Límites de Extensión (NON-NEGOTIABLE)
+
+El público objetivo tiene déficit de atención. Textos extensos generan
+abandono. Seguir el patrón del bootcamp JS hermano (`bc-javascript-es2023-cf`):
+
+| Elemento           | Límite                                          |
+| ------------------ | ----------------------------------------------- |
+| Líneas por archivo | **Máximo 120**                                  |
+| Objetivos          | 3–4 ítems                                       |
+| Secciones          | 4–6 secciones numeradas (`## 1.`, `## 2.`...)   |
+| Checklist          | **4 ítems** formulados como preguntas concretas |
+| Referencias        | 2–3 links                                       |
+
+**Qué NO incluir en teoría:**
+
+- ❌ Tablas de comparación de más de 4 filas
+- ❌ Tablas de resultados después de cada query de ejemplo
+- ❌ Secciones de "Herramientas recomendadas" (van en `4-recursos/`)
+- ❌ Notas de compatibilidad extensas (una línea `>` es suficiente)
+- ❌ Más de 2 ejemplos de código por sección
 
 ### 2. Prácticas (2-practicas/)
 
