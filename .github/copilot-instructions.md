@@ -15,7 +15,7 @@ nivel de SQL Developer Junior o Data Analyst Junior.
 - **Nivel de salida**: SQL Developer Junior / Data Analyst Junior
 - **Enfoque**: Progresión desde fundamentos absolutos hasta SQL avanzado y
   optimización de consultas
-- **Motor principal**: SQLite (fundamentos) → PostgreSQL (producción)
+- **Motor principal**: SQLite (fundamentos) → PostgreSQL vía Docker (producción)
 
 ---
 
@@ -401,7 +401,94 @@ ORDER BY avg_salary DESC;
 
 ---
 
-## 🔐 Mejores Prácticas
+## � Entorno PostgreSQL con Docker
+
+Para las **semanas 13–24** (Etapa 2: SQL Avanzado) se usa **PostgreSQL vía
+Docker** para garantizar:
+
+- Versión idéntica en todos los entornos (`postgres:16-alpine`)
+- Sin conflictos con PostgreSQL instalado en el sistema
+- Reset fácil del entorno para repetir ejercicios desde cero
+- Reproducibilidad en Linux, macOS y Windows
+
+### Imagen recomendada
+
+```
+postgres:16-alpine
+```
+
+### docker-compose.yml
+
+El archivo `_scripts/docker-compose.yml` incluye la configuración lista
+para usar. Comandos principales:
+
+```bash
+# Levantar PostgreSQL en background
+docker compose -f _scripts/docker-compose.yml up -d
+
+# Conectar con psql interactivo
+docker compose -f _scripts/docker-compose.yml exec postgres \
+  psql -U bootcamp -d bootcamp_db
+
+# Ejecutar un archivo .sql contra el contenedor
+docker compose -f _scripts/docker-compose.yml exec -T postgres \
+  psql -U bootcamp -d bootcamp_db < ruta/al/setup.sql
+
+# Detener el contenedor (conserva datos)
+docker compose -f _scripts/docker-compose.yml down
+
+# Reset completo — elimina volumen de datos
+docker compose -f _scripts/docker-compose.yml down -v
+```
+
+### Credenciales de desarrollo
+
+| Variable            | Valor         |
+| ------------------- | ------------- |
+| `POSTGRES_USER`     | `bootcamp`    |
+| `POSTGRES_PASSWORD` | `bootcamp123` |
+| `POSTGRES_DB`       | `bootcamp_db` |
+| Puerto host         | `5432`        |
+
+> ⚠️ **Solo para entorno local de aprendizaje.** Nunca usar estas
+> credenciales en producción.
+
+### Instrucciones para Copilot
+
+Al generar contenido para semanas 13–24:
+
+- Incluir el comando de conexión Docker al inicio del README de cada
+  ejercicio y proyecto
+- Referenciar siempre `PostgreSQL 16` en menciones de versión
+- Verificar que la sintaxis usada sea compatible con PostgreSQL 16
+- Añadir bloque "Cómo ejecutar" en el README:
+
+````markdown
+## Cómo ejecutar
+
+1. Asegúrate de tener Docker corriendo
+2. Levanta el contenedor:
+   ```bash
+   docker compose -f _scripts/docker-compose.yml up -d
+   ```
+````
+
+3. Carga el esquema de prueba:
+   ```bash
+   docker compose -f _scripts/docker-compose.yml exec -T postgres \
+     psql -U bootcamp -d bootcamp_db < starter/setup.sql
+   ```
+4. Conecta e interactúa:
+   ```bash
+   docker compose -f _scripts/docker-compose.yml exec postgres \
+     psql -U bootcamp -d bootcamp_db
+   ```
+
+```
+
+---
+
+## �🔐 Mejores Prácticas
 
 ### Seguridad en SQL
 
@@ -486,8 +573,10 @@ Cada semana incluye **tres tipos de evidencias**:
 
 2. **Motor de BD principal**
    - ✅ **SQLite** para semanas 1–12 (fundamentos e intermedio)
-   - ✅ **PostgreSQL** para semanas 13–24 (avanzado y producción)
+   - ✅ **PostgreSQL 16 vía Docker** para semanas 13–24 (avanzado y producción)
    - Indicar claramente si una feature es específica de SQLite o PostgreSQL
+   - Para semanas 13+: incluir siempre el comando de conexión Docker en el README
+   - Ver sección [🐳 Entorno PostgreSQL con Docker](#-entorno-postgresql-con-docker)
 
 3. **Scripts SQL estructurados**
    - Incluir siempre un `setup.sql` con datos de prueba representativos
@@ -555,6 +644,8 @@ Cuando crees contenido para una nueva semana:
 - [ ] Verificar coherencia con semanas anteriores
 - [ ] Revisar progresión de dificultad
 - [ ] Probar que todos los `.sql` son ejecutables
+- [ ] **Semanas 13–24**: verificar bloque "Cómo ejecutar" con Docker en README
+- [ ] **Semanas 13–24**: confirmar compatibilidad de sintaxis con PostgreSQL 16
 
 ---
 
@@ -569,3 +660,4 @@ Cuando crees contenido para una nueva semana:
 
 _Última actualización: Marzo 2026_
 _Versión: 1.0_
+```
