@@ -2,26 +2,24 @@
 -- Mismo esquema que ejercicio-01
 -- ============================================
 
-PRAGMA foreign_keys = ON;
-
 DROP TABLE IF EXISTS employees;
 DROP TABLE IF EXISTS departments;
 DROP TABLE IF EXISTS locations;
 
 CREATE TABLE locations (
-    id      INTEGER PRIMARY KEY,
+    id      SERIAL  PRIMARY KEY,
     city    TEXT    NOT NULL,
     country TEXT    NOT NULL DEFAULT 'México'
 );
 
 CREATE TABLE departments (
-    id          INTEGER PRIMARY KEY,
+    id          SERIAL  PRIMARY KEY,
     name        TEXT    NOT NULL,
     location_id INTEGER REFERENCES locations (id)
 );
 
 CREATE TABLE employees (
-    employee_id   INTEGER PRIMARY KEY,
+    employee_id   SERIAL  PRIMARY KEY,
     first_name    TEXT    NOT NULL,
     last_name     TEXT    NOT NULL,
     salary        REAL    NOT NULL,
