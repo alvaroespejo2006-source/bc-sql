@@ -1,8 +1,6 @@
 -- Semana 09: INNER JOIN
 -- Setup: locations + departments + employees
 
-PRAGMA foreign_keys = ON;
-
 -- ============================================
 -- TABLA: locations
 -- ============================================
@@ -11,7 +9,7 @@ DROP TABLE IF EXISTS departments;
 DROP TABLE IF EXISTS locations;
 
 CREATE TABLE locations (
-    id      INTEGER PRIMARY KEY,
+    id      SERIAL  PRIMARY KEY,
     name    TEXT    NOT NULL UNIQUE,
     country TEXT    NOT NULL,
     region  TEXT
@@ -21,7 +19,7 @@ CREATE TABLE locations (
 -- TABLA: departments
 -- ============================================
 CREATE TABLE departments (
-    id          INTEGER PRIMARY KEY,
+    id          SERIAL  PRIMARY KEY,
     name        TEXT    NOT NULL UNIQUE,
     budget      REAL    NOT NULL CHECK (budget > 0),
     location_id INTEGER REFERENCES locations (id),
@@ -32,7 +30,7 @@ CREATE TABLE departments (
 -- TABLA: employees
 -- ============================================
 CREATE TABLE employees (
-    id            INTEGER PRIMARY KEY,
+    id            SERIAL  PRIMARY KEY,
     first_name    TEXT    NOT NULL,
     last_name     TEXT    NOT NULL,
     email         TEXT    UNIQUE,
@@ -56,7 +54,7 @@ INSERT INTO departments (name, budget, location_id) VALUES
     ('Sales',         60000.00, 3),
     ('HR',            40000.00, 1);
 
--- Nota: employee_id 6 tiene department_id = NULL (sin asignación)
+-- Nota: Frank tiene department_id = NULL (sin asignación)
 INSERT INTO employees (first_name, last_name, email, salary, level, department_id) VALUES
     ('Alice',   'Smith',   'alice@example.com',   85000, 'sr',  1),
     ('Bob',     'Jones',   'bob@example.com',     62000, 'mid', 1),
@@ -64,3 +62,9 @@ INSERT INTO employees (first_name, last_name, email, salary, level, department_i
     ('David',   'Brown',   'david@example.com',   48000, 'jr',  3),
     ('Eve',     'Davis',   'eve@example.com',     55000, 'mid', 3),
     ('Frank',   'Wilson',  'frank@example.com',   90000, 'sr',  NULL);
+
+
+    SELECT
+    (SELECT COUNT(*) FROM locations)   AS total_locations,
+    (SELECT COUNT(*) FROM departments) AS total_departments,
+    (SELECT COUNT(*) FROM employees)   AS total_employees;

@@ -79,3 +79,6 @@ la cantidad de registros relacionados por cada entrada de la tabla padre.
 - Uso correcto de aliases de tabla
 - Comentarios en español explicando cada consulta
 - Ningún `SELECT *` — siempre columnas explícitas
+
+
+

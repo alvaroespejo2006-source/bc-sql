@@ -2,12 +2,10 @@
 -- Setup: employees con manager_id auto-referencial
 -- Jerarquía: CEO → 2 managers → 4 empleados
 
-PRAGMA foreign_keys = ON;
-
 DROP TABLE IF EXISTS employees;
 
 CREATE TABLE employees (
-    id         INTEGER PRIMARY KEY,
+    id         SERIAL  PRIMARY KEY,
     first_name TEXT    NOT NULL,
     last_name  TEXT    NOT NULL,
     salary     REAL    NOT NULL CHECK (salary > 0),
@@ -17,12 +15,12 @@ CREATE TABLE employees (
 
 -- ============================================
 -- DATOS DE PRUEBA
--- Diana Fox: CEO (nivel dir, sin manager)
+-- Diana Fox: CEO (nivel dir, sin manager) → queda con id=1
 -- Alice Smith, Bob Jones: managers (nivel mgr)
 -- Carol, David, Eve, Frank: empleados (nivel mid/jr)
 -- ============================================
 
--- CEO primero (sin manager_id)
+-- CEO primero (sin manager_id) — será id=1
 INSERT INTO employees (first_name, last_name, salary, level, manager_id)
 VALUES ('Diana', 'Fox', 150000, 'dir', NULL);
 
