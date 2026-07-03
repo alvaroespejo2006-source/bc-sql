@@ -1,21 +1,19 @@
 -- Semana 09: LEFT JOIN
 -- Setup: mismas tablas, HR sin empleados
 
-PRAGMA foreign_keys = ON;
-
 DROP TABLE IF EXISTS employees;
 DROP TABLE IF EXISTS departments;
 DROP TABLE IF EXISTS locations;
 
 CREATE TABLE locations (
-    id      INTEGER PRIMARY KEY,
+    id      SERIAL  PRIMARY KEY,
     name    TEXT    NOT NULL UNIQUE,
     country TEXT    NOT NULL,
     region  TEXT
 );
 
 CREATE TABLE departments (
-    id          INTEGER PRIMARY KEY,
+    id          SERIAL  PRIMARY KEY,
     name        TEXT    NOT NULL UNIQUE,
     budget      REAL    NOT NULL CHECK (budget > 0),
     location_id INTEGER REFERENCES locations (id),
@@ -23,7 +21,7 @@ CREATE TABLE departments (
 );
 
 CREATE TABLE employees (
-    id            INTEGER PRIMARY KEY,
+    id            SERIAL  PRIMARY KEY,
     first_name    TEXT    NOT NULL,
     last_name     TEXT    NOT NULL,
     email         TEXT    UNIQUE,
@@ -52,5 +50,11 @@ INSERT INTO employees (first_name, last_name, email, salary, level, is_active, d
     ('Alice',  'Smith',  'alice@example.com',  85000, 'sr',  1, 1),
     ('Bob',    'Jones',  'bob@example.com',    62000, 'mid', 1, 1),
     ('Carol',  'White',  'carol@example.com',  71000, 'sr',  0, 2),  -- inactivo
-    ('David',  'Brown',  'david@example.com',  48000, 'jr',  1, 3),
+    ('David',  'Brown',  'david@example.com',  48000, 'jr',  3, 3),
     ('Eve',    'Davis',  'eve@example.com',    55000, 'mid', 1, 3);
+
+
+    SELECT
+    (SELECT COUNT(*) FROM locations)   AS total_locations,
+    (SELECT COUNT(*) FROM departments) AS total_departments,
+    (SELECT COUNT(*) FROM employees)   AS total_employees;
