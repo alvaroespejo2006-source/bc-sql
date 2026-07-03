@@ -1,53 +1,50 @@
 -- ============================================
 -- PROYECTO SEMANAL: Funciones de Agregación
 -- Semana 06 — COUNT, SUM, AVG, GROUP BY, HAVING
+-- Dominio: Inmobiliaria
 -- ============================================
-
--- NOTA: Usa el esquema de tu Semana 03. Adapta nombres al dominio.
 
 -- ============================================
 -- REPORTE 1: Totales globales
 -- ============================================
--- TODO: Cuenta todos los registros y calcula suma/promedio
---       de la columna numérica más relevante de tu dominio
--- SELECT
---     COUNT(*)     AS total_registros,
---     SUM(col_num) AS suma_total,
---     AVG(col_num) AS promedio
--- FROM tu_tabla;
+SELECT
+    COUNT(*)                        AS total_propiedades,
+    SUM(precio)                     AS valor_total_inventario,
+    ROUND(AVG(precio)::numeric, 2)  AS precio_promedio
+FROM propiedades;
 
 
 -- ============================================
 -- REPORTE 2: Extremos
 -- ============================================
--- TODO: Obtén el valor mínimo y máximo de la columna numérica
--- SELECT
---     MIN(col_num) AS minimo,
---     MAX(col_num) AS maximo
--- FROM tu_tabla;
+SELECT
+    MIN(precio) AS precio_minimo,
+    MAX(precio) AS precio_maximo
+FROM propiedades;
 
 
 -- ============================================
--- REPORTE 3: Subtotales por categoría (GROUP BY)
+-- REPORTE 3: Subtotales por tipo de propiedad
 -- ============================================
--- TODO: Agrupa por la columna de categoría/tipo principal de tu dominio
---       y calcula COUNT + AVG o SUM para cada grupo
--- SELECT
---     columna_categoria,
---     COUNT(*)     AS total,
---     AVG(col_num) AS promedio
--- FROM   tu_tabla
--- GROUP BY columna_categoria
--- ORDER BY total DESC;
+SELECT
+    tp.nombre_tipo,
+    COUNT(*)                         AS total,
+    ROUND(AVG(p.precio)::numeric, 2) AS promedio
+FROM propiedades p
+JOIN tipos_propiedad tp ON p.id_tipo = tp.id_tipo
+GROUP BY tp.nombre_tipo
+ORDER BY total DESC;
 
 
 -- ============================================
--- REPORTE 4: Filtro de grupos (HAVING)
+-- REPORTE 4: Tipos de propiedad con oferta amplia
 -- ============================================
--- TODO: Muestra solo los grupos que superen un umbral de negocio
--- SELECT
---     columna_categoria,
---     COUNT(*) AS total
--- FROM   tu_tabla
--- GROUP BY columna_categoria
--- HAVING COUNT(*) > umbral;
+-- Filtro de negocio: solo tipos con más de 3 unidades disponibles
+-- (indica un segmento con inventario suficiente para analizar tendencias)
+SELECT
+    tp.nombre_tipo,
+    COUNT(*) AS total
+FROM propiedades p
+JOIN tipos_propiedad tp ON p.id_tipo = tp.id_tipo
+GROUP BY tp.nombre_tipo
+HAVING COUNT(*) > 3;

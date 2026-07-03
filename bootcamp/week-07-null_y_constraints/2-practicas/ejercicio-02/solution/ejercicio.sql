@@ -1,30 +1,49 @@
 -- ============================================
--- Semana 07: Constraints — Ejercicio 02 — SOLUCIÓN
+-- Semana 07: Constraints y PRAGMA — Ejercicio 02
+-- ============================================
+-- Ejecuta primero: setup.sql
+-- NOTA: PRAGMA es sintaxis de SQLite. Como usamos PostgreSQL,
+-- se reemplaza por consultas equivalentes a information_schema.
+
+-- ============================================
+-- PASO 1: Verificar constraints (equivalente a PRAGMA table_info)
 -- ============================================
 
--- PASO 1
-PRAGMA table_info(employees);
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_name = 'employees';
 
--- PASO 2
+
+-- ============================================
+-- PASO 2: Insertar datos válidos
+-- ============================================
+
 INSERT INTO employees
-    (id, first_name, last_name, salary, level, department_id)
+    (id, first_name, last_name, salary, department_id)
 VALUES
-    (10, 'Hugo', 'Reyes', 62000.00, 'mid', 2);
+    (11, 'Hugo', 'Reyes', 62000.00, 2);
 
-SELECT * FROM employees WHERE id = 10;
+-- ============================================
+-- PASO 3: NULLIF para división segura
+-- ============================================
 
--- PASO 3
 SELECT
     first_name,
     salary,
-    COALESCE(bonus, 0)                               AS bonus,
-    ROUND(
-        COALESCE(bonus, 0) / NULLIF(salary, 0) * 100,
-        2
-    )                                                AS bonus_pct
+    COALESCE(bonus, 0)                           AS bonus,
+    COALESCE(bonus, 0) / NULLIF(salary, 0) * 100 AS bonus_pct
 FROM employees;
 
--- PASO 4
+
+-- ============================================
+-- PASO 4: Verificar integridad referencial
+-- ============================================
+
 SELECT DISTINCT department_id
 FROM   employees
 WHERE  department_id NOT IN (SELECT id FROM departments);
+
+
+
+
+
