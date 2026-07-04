@@ -121,3 +121,4 @@ SELECT *
 FROM v_period_analysis
 WHERE category_id = 1
 ORDER BY period_date;
+

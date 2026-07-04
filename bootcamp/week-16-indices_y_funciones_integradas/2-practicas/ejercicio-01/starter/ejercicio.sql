@@ -3,58 +3,63 @@
 -- PostgreSQL 16
 -- ============================================
 
+
 -- ============================================
 -- PASO 1: EXPLAIN sin índice
 -- ============================================
+-- EXPLAIN te muestra el "plan" que PostgreSQL usará para ejecutar
+-- la consulta, SIN ejecutarla de verdad. Sin ningún índice en
+-- department_id, la única forma de encontrar las filas es leer
+-- la tabla completa de principio a fin — esto se llama
+-- "Seq Scan" (sequential scan).
 
--- Observa el plan antes de crear el índice
--- Busca "Seq Scan" en la salida — recorre toda la tabla
--- Descomenta las siguientes líneas:
-
--- EXPLAIN
--- SELECT * FROM employees WHERE department_id = 2;
+EXPLAIN
+SELECT * FROM employees WHERE department_id = 2;
 
 
 -- ============================================
 -- PASO 2: Crear índice y repetir EXPLAIN
 -- ============================================
+-- CREATE INDEX construye una estructura B-tree ordenada sobre la
+-- columna department_id, para que PostgreSQL pueda "saltar"
+-- directo a las filas que buscamos sin leer toda la tabla.
 
--- Crea el índice en department_id
--- Luego observa si el plan cambia a "Index Scan"
--- Descomenta las siguientes líneas:
+CREATE INDEX idx_employees_department_id
+    ON employees (department_id);
 
--- CREATE INDEX idx_employees_department_id
---     ON employees (department_id);
-
--- EXPLAIN
--- SELECT * FROM employees WHERE department_id = 2;
+EXPLAIN
+SELECT * FROM employees WHERE department_id = 2;
 
 
 -- ============================================
 -- PASO 3: Índice UNIQUE en email
 -- ============================================
+-- UNIQUE INDEX hace dos cosas a la vez: garantiza que no existan
+-- dos empleados con el mismo email (como una restricción), Y
+-- acelera las búsquedas exactas por ese campo.
+-- EXPLAIN ANALYZE, a diferencia de EXPLAIN normal, SÍ ejecuta la
+-- consulta de verdad y muestra tiempos reales de ejecución.
 
--- Un índice único garantiza unicidad + acelera búsquedas por email exacto
--- EXPLAIN ANALYZE también ejecuta la query y muestra tiempos reales
--- Descomenta las siguientes líneas:
+CREATE UNIQUE INDEX idx_employees_email
+    ON employees (email);
 
--- CREATE UNIQUE INDEX idx_employees_email
---     ON employees (email);
-
--- EXPLAIN ANALYZE
--- SELECT * FROM employees WHERE email = 'ana.garcia@empresa.com';
+EXPLAIN ANALYZE
+SELECT * FROM employees WHERE email = 'ana.garcia@empresa.com';
 
 
 -- ============================================
 -- PASO 4: Ver los índices creados
 -- ============================================
+-- pg_indexes es una vista del catálogo del sistema de PostgreSQL
+-- que lista todos los índices existentes. Aquí filtramos solo
+-- los de la tabla employees, para confirmar que los dos índices
+-- que creamos (department_id y email) sí quedaron registrados.
 
--- Consulta el catálogo del sistema para listar todos los índices
--- pg_indexes es una vista del sistema de PostgreSQL
--- Descomenta las siguientes líneas:
+SELECT
+    indexname,
+    indexdef
+FROM pg_indexes
+WHERE tablename = 'employees';
 
--- SELECT
---     indexname,
---     indexdef
--- FROM pg_indexes
--- WHERE tablename = 'employees';
+EXPLAIN
+SELECT * FROM employees WHERE department_id = 2;

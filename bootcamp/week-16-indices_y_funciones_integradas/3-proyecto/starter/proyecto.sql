@@ -1,86 +1,113 @@
 -- ============================================
 -- PROYECTO SEMANAL: Índices y Consultas Optimizadas
 -- Semana 16 — Índices B-tree + Funciones integradas
+-- Dominio: INMOBILIARIA
 -- PostgreSQL 16
 -- ============================================
 
--- NOTA PARA EL APRENDIZ:
--- Adapta este esquema a tu dominio asignado.
--- Ejemplos:
---   Biblioteca  → books, members, loans (title, loan_date, fine_amount)
---   Farmacia    → medicines, sales (medicine_name, expiry_date, price)
---   Gimnasio    → members, attendance (name, registration_date, fee)
---   Restaurante → dishes, orders (dish_name, order_date, price)
+-- Adaptación del esquema genérico a bienes raíces:
+--   categories → tipos_propiedad (Apartamento, Casa, Local, Oficina, Terreno)
+--   records    → propiedades (nombre/referencia, descripción, precio, fecha de publicación)
 
--- TODO: Renombrar las tablas y columnas según tu dominio
+DROP TABLE IF EXISTS propiedades CASCADE;
+DROP TABLE IF EXISTS tipos_propiedad CASCADE;
 
-DROP TABLE IF EXISTS records CASCADE;
-DROP TABLE IF EXISTS categories CASCADE;
-
-CREATE TABLE categories (
+CREATE TABLE tipos_propiedad (
     id   SERIAL PRIMARY KEY,
     name TEXT   NOT NULL
 );
 
-CREATE TABLE records (
+CREATE TABLE propiedades (
     id          SERIAL         PRIMARY KEY,
-    name        TEXT           NOT NULL,             -- TODO: renombrar (title, dish_name, etc.)
+    name        TEXT           NOT NULL,           -- referencia de la propiedad
     description TEXT,
-    category_id INT            REFERENCES categories (id),
-    price       NUMERIC(10, 2),                      -- TODO: renombrar (fine_amount, fee, etc.)
-    created_at  DATE           NOT NULL DEFAULT CURRENT_DATE
-    -- TODO: Agregar columnas específicas del dominio
+    category_id INT            REFERENCES tipos_propiedad (id),
+    price       NUMERIC(12, 2),                    -- precio de venta
+    created_at  DATE           NOT NULL DEFAULT CURRENT_DATE  -- fecha de publicación
 );
 
--- TODO: Insertar datos representativos (mínimo 8 filas)
-INSERT INTO categories (name) VALUES
-    ('Categoría A'),
-    ('Categoría B');
+-- ============================================
+-- DATOS: 5 tipos de propiedad
+-- ============================================
+INSERT INTO tipos_propiedad (name) VALUES
+    ('Apartamento'),      -- id 1
+    ('Casa'),             -- id 2
+    ('Local Comercial'),  -- id 3
+    ('Oficina'),          -- id 4
+    ('Terreno');           -- id 5
 
-INSERT INTO records (name, description, category_id, price, created_at) VALUES
-    ('Registro 1', 'Descripción 1', 1, 29.99, '2022-03-10'),
-    ('Registro 2', 'Descripción 2', 1, 49.99, '2021-07-15'),
-    ('Registro 3', 'Descripción 3', 2, 19.99, '2023-01-05'),
-    ('Registro 4', 'Descripción 4', 2, 99.99, '2020-11-20'),
-    ('Registro 5', 'Descripción 5', 1, 34.50, '2022-09-08'),
-    ('Registro 6', 'Descripción 6', 1, 15.00, '2024-02-14'),
-    ('Registro 7', 'Descripción 7', 2, 75.00, '2021-05-30'),
-    ('Registro 8', 'Descripción 8', 2, 55.75, '2023-11-11');
+-- ============================================
+-- DATOS: 200 propiedades generadas con generate_series
+-- ============================================
+-- generate_series crea 200 números consecutivos (1 a 200). Cada
+-- fila se combina con una categoría cíclica (1 al 5), un precio
+-- variable, y una fecha de publicación distribuida en los
+-- últimos ~5 años (para que AGE/EXTRACT en el TODO 2 tenga
+-- variedad real de antigüedades que mostrar).
+
+INSERT INTO propiedades (name, description, category_id, price, created_at)
+SELECT
+    'Propiedad ' || gs                                   AS name,
+    'Descripción de la propiedad número ' || gs          AS description,
+    1 + (gs % 5)                                          AS category_id,
+    ROUND(
+        CAST(200000 + (gs % 50) * 15000 AS NUMERIC)
+    , 2)                                                  AS price,
+    (DATE '2020-01-01' + ((gs * 9) || ' days')::INTERVAL)::DATE AS created_at
+FROM generate_series(1, 200) AS gs;
 
 
 -- ============================================
 -- TODO 1: Crear un índice y verificar con EXPLAIN
 -- ============================================
--- 1. Ejecuta EXPLAIN en una consulta con WHERE category_id = ...
---    ANTES de crear el índice. Observa "Seq Scan".
--- 2. Crea el índice con CREATE INDEX en la columna category_id.
--- 3. Ejecuta el mismo EXPLAIN de nuevo. Observa si cambia a "Index Scan".
+-- Primero vemos el plan SIN índice: con 200 filas, PostgreSQL
+-- recorre toda la tabla (Seq Scan) para encontrar las que
+-- cumplen category_id = 3. Luego creamos el índice B-tree sobre
+-- esa columna, y repetimos el mismo EXPLAIN — con más volumen de
+-- datos, ahora sí debería preferir usar el índice (Index Scan o
+-- Bitmap Index Scan) en vez de leer todo.
 
--- TODO: Agregar EXPLAIN antes del índice
--- TODO: Crear el índice idx_records_category_id
--- TODO: Agregar EXPLAIN después del índice
+-- Plan ANTES del índice
+EXPLAIN
+SELECT * FROM propiedades WHERE category_id = 3;
+
+CREATE INDEX idx_propiedades_category_id
+    ON propiedades (category_id);
+
+-- Plan DESPUÉS del índice
+EXPLAIN
+SELECT * FROM propiedades WHERE category_id = 3;
 
 
 -- ============================================
 -- TODO 2: Reporte con funciones de texto y fecha
 -- ============================================
--- Crea una consulta que muestre:
---   - name en MAYÚSCULAS
---   - created_at formateado como 'DD/MM/YYYY' con TO_CHAR
---   - Antigüedad del registro en años usando AGE + EXTRACT
+-- UPPER() muestra el nombre en mayúsculas. TO_CHAR() formatea
+-- la fecha de publicación como texto legible (DD/MM/YYYY).
+-- AGE(CURRENT_DATE, created_at) calcula el intervalo desde la
+-- publicación hasta hoy, y EXTRACT(YEAR FROM ...) saca solo la
+-- parte de años de ese intervalo, dando la antigüedad del anuncio.
 
--- TODO: Implementar la consulta de reporte con funciones de texto y fecha
--- Debe mostrar: name_upper, created_fmt, years_old
+SELECT
+    UPPER(name)                                            AS name_upper,
+    TO_CHAR(created_at, 'DD/MM/YYYY')                      AS created_fmt,
+    EXTRACT(YEAR FROM AGE(CURRENT_DATE, created_at))::INT  AS years_old
+FROM propiedades
+ORDER BY years_old DESC;
 
 
 -- ============================================
 -- TODO 3: Reporte numérico con descuento
 -- ============================================
--- Calcula para cada registro:
---   - price original
---   - price con 15% de descuento (ROUND a 2 decimales)
---   - el ahorro (original - precio_con_descuento)
--- Ordena por precio descendente.
+-- Calculamos, para cada propiedad: el precio original, el precio
+-- con un 15% de descuento (ROUND a 2 decimales para dinero), y el
+-- ahorro exacto (la diferencia entre ambos). Ordenamos de mayor a
+-- menor precio original.
 
--- TODO: Implementar la consulta de precios con descuento del 15%
--- Debe mostrar: name, price, discounted_price, savings
+SELECT
+    name,
+    price,
+    ROUND(price * 0.85, 2)          AS discounted_price,
+    ROUND(price - (price * 0.85), 2) AS savings
+FROM propiedades
+ORDER BY price DESC;
