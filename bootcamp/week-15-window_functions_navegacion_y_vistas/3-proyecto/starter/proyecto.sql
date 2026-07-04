@@ -1,88 +1,123 @@
 -- ============================================
 -- PROYECTO SEMANAL: Análisis temporal con Window Functions y Vistas
 -- Semana 15 — LEAD, LAG, FIRST_VALUE, LAST_VALUE, CREATE VIEW
+-- Dominio: INMOBILIARIA
 -- PostgreSQL 16
 -- ============================================
 
--- NOTA PARA EL APRENDIZ:
--- Adapta este esquema a tu dominio asignado.
--- Ejemplos:
---   Biblioteca  → monthly_loans, members, books
---   Farmacia    → monthly_sales, medicines, inventory
---   Gimnasio    → monthly_attendance, members, routines
---   Restaurante → daily_orders, dishes, tables
-
--- TODO: Renombrar las tablas según tu dominio
--- TODO: Agregar columnas específicas de tu dominio
-
 DROP VIEW  IF EXISTS v_period_analysis CASCADE;
-DROP TABLE IF EXISTS period_metrics CASCADE;
-DROP TABLE IF EXISTS categories CASCADE;
+DROP TABLE IF EXISTS ventas_mensuales CASCADE;
+DROP TABLE IF EXISTS tipos_propiedad CASCADE;
 
-CREATE TABLE categories (
+CREATE TABLE tipos_propiedad (
     id   SERIAL PRIMARY KEY,
     name TEXT   NOT NULL
 );
 
-CREATE TABLE period_metrics (
+CREATE TABLE ventas_mensuales (
     id          SERIAL         PRIMARY KEY,
-    period_date DATE           NOT NULL,       -- TODO: renombrar (sale_month, log_date, etc.)
-    category_id INT            REFERENCES categories (id),
-    value       NUMERIC(12, 2) NOT NULL        -- TODO: renombrar (revenue, count, rate, etc.)
-    -- TODO: Agregar columnas específicas del dominio
+    period_date DATE           NOT NULL,
+    category_id INT            REFERENCES tipos_propiedad (id),
+    value       NUMERIC(12, 2) NOT NULL
 );
 
--- TODO: Insertar datos de al menos 3 períodos y 2 categorías
--- Los datos deben reflejar tu dominio asignado
-INSERT INTO categories (name) VALUES
-    ('Categoría A'),  -- TODO: reemplazar
-    ('Categoría B');
+-- ============================================
+-- DATOS: 5 tipos de propiedad
+-- ============================================
+INSERT INTO tipos_propiedad (name) VALUES
+    ('Apartamento'),
+    ('Casa'),
+    ('Local Comercial'),
+    ('Oficina'),
+    ('Terreno');
 
-INSERT INTO period_metrics (period_date, category_id, value) VALUES
-    ('2024-01-01', 1, 1000),  -- TODO: reemplazar con datos reales
-    ('2024-02-01', 1, 1200),
-    ('2024-03-01', 1,  900),
-    ('2024-04-01', 1, 1500),
-    ('2024-01-01', 2,  800),
-    ('2024-02-01', 2,  850),
-    ('2024-03-01', 2,  780),
-    ('2024-04-01', 2,  920);
+-- ============================================
+-- DATOS: 200 filas — 40 meses x 5 categorías
+-- ============================================
+-- Se usa CAST(... AS NUMERIC) porque SIN() devuelve double
+-- precision, y ROUND(valor, decimales) solo acepta ese segundo
+-- argumento cuando el primer valor es de tipo numeric.
+
+INSERT INTO ventas_mensuales (period_date, category_id, value)
+SELECT
+    meses.period_date,
+    tp.id AS category_id,
+    ROUND(
+        CAST(
+            (300000 + (tp.id * 40000))
+            + (EXTRACT(MONTH FROM meses.period_date)::INT * 5000)
+            + (SIN(EXTRACT(EPOCH FROM meses.period_date) / 5000000) * 60000)
+            AS NUMERIC
+        )
+    , 2) AS value
+FROM generate_series(
+        DATE '2022-01-01',
+        DATE '2025-04-01',
+        INTERVAL '1 month'
+     ) AS meses(period_date)
+CROSS JOIN tipos_propiedad tp
+ORDER BY tp.id, meses.period_date;
 
 
 -- ============================================
 -- TODO 1: LAG para calcular la variación entre períodos
 -- ============================================
--- Muestra el valor actual, el del período anterior (LAG),
--- y la diferencia (delta = value - prev_value).
--- Aplica PARTITION BY category_id para comparar
--- cada categoría con su propio período anterior.
-
--- TODO: Implementar la consulta con LAG y cálculo de delta
--- Debe mostrar: period_date, category_id, value, prev_value, delta
+SELECT
+    period_date,
+    category_id,
+    value,
+    LAG(value, 1, 0) OVER (
+        PARTITION BY category_id
+        ORDER BY period_date
+    )                                                       AS prev_value,
+    value - LAG(value, 1, 0) OVER (
+        PARTITION BY category_id
+        ORDER BY period_date
+    )                                                       AS delta
+FROM ventas_mensuales
+ORDER BY category_id, period_date;
 
 
 -- ============================================
 -- TODO 2: FIRST_VALUE y LAST_VALUE por categoría
 -- ============================================
--- Para cada fila muestra:
---   - El mejor valor histórico de la categoría (FIRST_VALUE ORDER BY value DESC)
---   - El peor valor histórico (LAST_VALUE con frame extendido)
--- Usa WINDOW alias para no repetir la definición.
-
--- TODO: Implementar la consulta combinando ambas funciones
--- Recuerda: LAST_VALUE necesita ROWS BETWEEN UNBOUNDED PRECEDING
---           AND UNBOUNDED FOLLOWING
+SELECT
+    period_date,
+    category_id,
+    value,
+    FIRST_VALUE(value) OVER w AS period_best,
+    LAST_VALUE(value)  OVER w AS period_worst
+FROM ventas_mensuales
+WINDOW w AS (
+    PARTITION BY category_id
+    ORDER BY value DESC
+    ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+)
+ORDER BY category_id, period_date;
 
 
 -- ============================================
 -- TODO 3: CREATE VIEW — encapsular el análisis
 -- ============================================
--- Crea la vista v_period_analysis que incluya:
---   period_date, category_id, value,
---   LAG(value) como prev_value,
---   FIRST_VALUE(value) como period_best,
---   LAST_VALUE(value) con frame como period_worst
--- Luego consulta la vista filtrando por category_id = 1.
+CREATE OR REPLACE VIEW v_period_analysis AS
+SELECT
+    period_date,
+    category_id,
+    value,
+    LAG(value, 1, 0) OVER (
+        PARTITION BY category_id
+        ORDER BY period_date
+    ) AS prev_value,
+    FIRST_VALUE(value) OVER w AS period_best,
+    LAST_VALUE(value)  OVER w AS period_worst
+FROM ventas_mensuales
+WINDOW w AS (
+    PARTITION BY category_id
+    ORDER BY value DESC
+    ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+);
 
--- TODO: Crear la vista con CREATE OR REPLACE VIEW v_period_analysis AS ...
--- TODO: Consultar la vista con SELECT * FROM v_period_analysis WHERE category_id = 1
+SELECT *
+FROM v_period_analysis
+WHERE category_id = 1
+ORDER BY period_date;
